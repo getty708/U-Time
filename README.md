@@ -59,6 +59,16 @@ ut predict --folder_regex '../datasets/sleep-EDF-153/SC400[1-2]E0' \
 </pre>
 
 ## Memo
+### Installation
+
+```bash
+$ cd $HOME/U-Time/libpy
+$ pip install -e MultiPlanarUNet
+$ cd $HOME
+$ pip install -e U-Time
+$ export PATH=$PATH:$HOME/.local/bin
+```
+
 ### Install this package to docker container.
 
 ```

@@ -1,0 +1,3 @@
+[submodule "libpy/MultiPlanerUNet"]
+	path = libpy/MultiPlanerUNet
+	url = git@github.com:perslev/MultiPlanarUNet.git

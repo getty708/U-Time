@@ -11,3 +11,5 @@ services:
     tty: true
     environment:
       PATHONPATH: /home/bob/U-Time/utime
+      NVIDIA_VISIBLE_DEVICES: 0
+      CUDA_VISIBLE_DEVICES: 0

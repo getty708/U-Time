@@ -6,4 +6,5 @@ ruamel.yaml>=0.16.12
 ruamel.base>=1.0.0
 scikit_learn>=0.20.0
 mne==0.19
-MultiPlanarUNet>=0.2.6
+# MultiPlanarUNet>=0.2.6
+mpunet>=0.2.6

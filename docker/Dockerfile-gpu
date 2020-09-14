@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+FROM tensorflow/tensorflow:2.3.0-gpu
 LABEL maintener.name="Yoshimura Naoya" \
       maintener.emal="yoshimura.naoya@ist.osaka-u.ac.jp" \
       version="1.0"
@@ -25,9 +25,9 @@ RUN pip install jupyter \
     && jupyter notebook --generate-config
 RUN echo 'alias python=python3' >> ~/.bashrc
 
-# Install Python Module
-COPY ./requirements.txt /root
-RUN pip install -r /root/requirements.txt
+# # Install Python Module
+# COPY ./requirements.txt /root
+# RUN pip install -r /root/requirements.txt
 
 
 # -- User (ID: bob, PW: bob) --

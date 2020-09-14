@@ -1,11 +1,11 @@
-matplotlib
-numpy
-scipy
-seaborn
-sklearn
-tensorboard
-tqdm
-pandas
-pytest
-pytest-mock
-pyyaml
+# matplotlib
+# numpy
+# scipy
+# seaborn
+# sklearn
+# tensorboard
+# tqdm
+# pandas
+# pytest
+# pytest-mock
+# pyyaml

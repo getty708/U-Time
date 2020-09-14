@@ -1,0 +1,13 @@
+version: '3'
+services:
+  ws:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile-gpu
+    volumes:
+      - ./:/home/bob/U-Time
+    ports:
+      - "8888:8888"
+    tty: true
+    environment:
+      PATHONPATH: /home/bob/U-Time/utime

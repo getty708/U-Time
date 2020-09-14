@@ -1,0 +1,42 @@
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+LABEL maintener.name="Yoshimura Naoya" \
+      maintener.emal="yoshimura.naoya@ist.osaka-u.ac.jp" \
+      version="1.0"
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && apt-get install -y \
+    emacs \
+    tmux \
+    nfs-common \
+    wget \
+    build-essential \
+    iputils-ping \
+    net-tools
+
+# Change timezone
+RUN apt-get install -y tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+ENV TZ Asia/Tokyo
+
+# -- Python --
+# Install Jupyter
+RUN pip install --upgrade pip
+RUN pip install jupyter \
+    && jupyter notebook --generate-config
+RUN echo 'alias python=python3' >> ~/.bashrc
+
+# Install Python Module
+COPY ./requirements.txt /root
+RUN pip install -r /root/requirements.txt
+
+
+# -- User (ID: bob, PW: bob) --
+ENV USER bob
+ENV HOME /home/${USER}
+ENV SHELL /bin/bash
+RUN useradd -m ${USER} \
+    && gpasswd -a ${USER} sudo \
+    && echo "${USER}:bob" | chpasswd
+USER ${USER}
+WORKDIR /home/bob
+VOLUME  /home/bob/U-Time

@@ -57,3 +57,33 @@ ut predict --folder_regex '../datasets/sleep-EDF-153/SC400[1-2]E0' \
            --data_per_prediction 300 \
            --one_shot
 </pre>
+
+## Memo
+### Install this package to docker container.
+
+```
+export PATH=$PATH:$HOME/.local/bin
+```
+
+```
+pip install -U ruamel.yaml
+# or
+pip install -U ruamel.yaml==0.16.12
+```
+
+### Training
+#### `utime.errors.ChannelNotFoundError`
++ To remove this error, we need to use `mne==0.19`.
++ Ref: https://github.com/perslev/U-Time/issues/5
+
+
+```bash
+$ pip install -U mne==0.19
+```
+
+#### Enable GPUs
+
+
+```bash
+export CUDA_VISIBLE_DEVICES=0
+```

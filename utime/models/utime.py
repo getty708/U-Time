@@ -14,8 +14,8 @@ from tensorflow.keras.layers import Input, BatchNormalization, Cropping2D, \
                                     Concatenate, MaxPooling2D, Dense, \
                                     UpSampling2D, ZeroPadding2D, Lambda, Conv2D, \
                                     AveragePooling2D, DepthwiseConv2D
-from MultiPlanarUNet.logging import ScreenLogger
-from MultiPlanarUNet.utils.conv_arithmetics import compute_receptive_fields
+from mpunet.logging import ScreenLogger
+from mpunet.utils.conv_arithmetics import compute_receptive_fields
 
 
 class UTime(Model):

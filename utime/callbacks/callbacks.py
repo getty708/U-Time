@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
-from MultiPlanarUNet.utils import highlighted
-from MultiPlanarUNet.logging import ScreenLogger
+from mpunet.utils import highlighted
+from mpunet.logging import ScreenLogger
 
 import numpy as np
 import pandas as pd

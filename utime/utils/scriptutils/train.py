@@ -2,7 +2,7 @@
 A set of functions for needed for running training in various settings
 """
 
-from MultiPlanarUNet.logging.default_logger import ScreenLogger
+from mpunet.logging.default_logger import ScreenLogger
 
 
 def get_train_and_val_datasets(hparams, no_val, train_on_val, logger):

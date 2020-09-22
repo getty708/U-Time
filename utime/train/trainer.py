@@ -177,6 +177,7 @@ class Trainer(object):
 
         # Get initialized callback objects
         callbacks, cb_dict = init_callback_objects(callbacks, self.logger)
+        # print("check2: callbacks=", callbacks)
 
         # If ModelCheckPointClean is used, set the original model to store
         # the correct weights when using multi-GPU models

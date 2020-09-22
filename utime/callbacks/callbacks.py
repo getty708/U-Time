@@ -81,7 +81,8 @@ class Validation(Callback):
         metrics_names = self.model.metrics_names
         self.model.reset_metrics()
         assert "loss" in metrics_names and metrics_names.index("loss") == 0
-        assert len(metrics_names)-1 == len(metrics)
+        # assert len(metrics_names)-1 == len(metrics)
+        assert len(metrics_names) == len(metrics) # FIXME: Why -1?
 
         # Prepare arrays for CM summary stats
         TPs, relevant, selected, metrics_results = {}, {}, {}, {}
@@ -113,7 +114,9 @@ class Validation(Callback):
                     print(s, end="\r", flush=True)
                 pred = self.model.predict_on_batch(X)
                 # Put values in the queue for counting
-                count_queue.put([pred.numpy(), y])
+                # keras .predict_on__batch returns np.ndarray.
+                # count_queue.put([pred.numpy(), y])
+                count_queue.put([pred, y])
                 # Run all metrics
                 for metric in metrics:
                     metric(y, pred)

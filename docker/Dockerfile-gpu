@@ -1,7 +1,6 @@
-FROM tensorflow/tensorflow:2.3.0-gpu
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
 LABEL maintener.name="Yoshimura Naoya" \
-      maintener.emal="yoshimura.naoya@ist.osaka-u.ac.jp" \
-      version="1.0"
+      maintener.emal="yoshimura.naoya@ist.osaka-u.ac.jp"
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install -y \
@@ -22,13 +21,8 @@ ENV TZ Asia/Tokyo
 # Install Jupyter
 RUN pip install --upgrade pip
 RUN pip install jupyter \
-    && jupyter notebook --generate-config
-RUN echo 'alias python=python3' >> ~/.bashrc
-
-# # Install Python Module
-# COPY ./requirements.txt /root
-# RUN pip install -r /root/requirements.txt
-
+    && jupyter notebook --generate-config \
+    && echo 'alias python=python3' >> ~/.bashrc
 
 # -- User (ID: bob, PW: bob) --
 ENV USER bob
@@ -40,3 +34,8 @@ RUN useradd -m ${USER} \
 USER ${USER}
 WORKDIR /home/bob
 VOLUME  /home/bob/U-Time
+
+
+# Install Python Module
+COPY ./requirements.txt ${HOME}
+RUN pip install -r ${HOME}/requirements.txt

@@ -1,0 +1,127 @@
+[
+    {
+        "Id": "sha256:6861a5e44e7c94a6fcbb21dde6eea0168303cb80e8d9d4fb46c7c4e7edeacf26",
+        "RepoTags": [
+            "yoshimura/utime:pytorch-1.6.0-cuda10.1-cudnn7-runtime"
+        ],
+        "RepoDigests": [],
+        "Parent": "sha256:15ea080f23575516ff54e89266bd77861e9d82d8091287a770e574435a1974fb",
+        "Comment": "",
+        "Created": "2020-09-22T06:33:58.574914301Z",
+        "Container": "91c4f5cfc3ab6dfac4e2a2d9721654eafa1aed3b7de97eda39035b6e46e0ef72",
+        "ContainerConfig": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "bob",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NVIDIA_VISIBLE_DEVICES=all",
+                "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
+                "LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64",
+                "DEBIAN_FRONTEND=noninteractive",
+                "TZ=Asia/Tokyo",
+                "USER=bob",
+                "HOME=/home/bob",
+                "SHELL=/bin/bash"
+            ],
+            "Cmd": [
+                "/bin/sh",
+                "-c",
+                "pip install -r ${HOME}/requirements.txt"
+            ],
+            "Image": "sha256:15ea080f23575516ff54e89266bd77861e9d82d8091287a770e574435a1974fb",
+            "Volumes": {
+                "/home/bob/U-Time": {}
+            },
+            "WorkingDir": "/home/bob",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "com.nvidia.volumes.needed": "nvidia_driver",
+                "maintener.emal": "yoshimura.naoya@ist.osaka-u.ac.jp",
+                "maintener.name": "Yoshimura Naoya"
+            }
+        },
+        "DockerVersion": "19.03.12",
+        "Author": "",
+        "Config": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "bob",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NVIDIA_VISIBLE_DEVICES=all",
+                "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
+                "LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64",
+                "DEBIAN_FRONTEND=noninteractive",
+                "TZ=Asia/Tokyo",
+                "USER=bob",
+                "HOME=/home/bob",
+                "SHELL=/bin/bash"
+            ],
+            "Cmd": [
+                "/bin/bash"
+            ],
+            "ArgsEscaped": true,
+            "Image": "sha256:15ea080f23575516ff54e89266bd77861e9d82d8091287a770e574435a1974fb",
+            "Volumes": {
+                "/home/bob/U-Time": {}
+            },
+            "WorkingDir": "/home/bob",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "com.nvidia.volumes.needed": "nvidia_driver",
+                "maintener.emal": "yoshimura.naoya@ist.osaka-u.ac.jp",
+                "maintener.name": "Yoshimura Naoya"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 4085999687,
+        "VirtualSize": 4085999687,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/94dd0a0d0ba907598fa64db809ad38e93cbd56dd952848b091861c6bfba0d3ce/diff:/var/lib/docker/overlay2/32eaa3c6ef032a433e25844bd4b8a74a739474fed3c88b6bef9806f5898d2f04/diff:/var/lib/docker/overlay2/7f164b1eb24d558fbd3eb6f1a5c437ba37cbcbd79779cc67719ce82d2290fa1b/diff:/var/lib/docker/overlay2/2801cb589da00bcdbbb4a550ac0eb5e6404a417fbc4de9955f385ec1e40fe329/diff:/var/lib/docker/overlay2/220233df1cdab53302e33609ae540a8a68e9e837a2abdd0c7a27f7eb66ed6389/diff:/var/lib/docker/overlay2/1bef8a6663705fc647e6f59f52cd0ac5d8014ec9822484b494997f9f9c92f737/diff:/var/lib/docker/overlay2/ac456a3c2470e0efe2ecfaedc45909f7bd3190eef295d6ed3abe25957fb42555/diff:/var/lib/docker/overlay2/f90f7d3dbde1056a5ef047c45e299c497df4ec3949906466924ae146df8dfb84/diff:/var/lib/docker/overlay2/2111d4d0534ef858860c8b0661a544fc4fcd475828ed8790e11936e7c3f2ee47/diff:/var/lib/docker/overlay2/c4b9752d78e266c656e2038caf2348e01e1e670b678fa6330a29331852dcb168/diff:/var/lib/docker/overlay2/6f93760faa43ed7d0573736a64c489615e159a31c4a4a93e3df34187f09f1437/diff:/var/lib/docker/overlay2/7d55ffc428d27e78718fc4b642c203f616634e1b61b77ad676eccf44af6af67a/diff:/var/lib/docker/overlay2/96b0df83b1b4c37bde5c0dc3320fc14bce30979a90fcca7492931eb179639e4c/diff",
+                "MergedDir": "/var/lib/docker/overlay2/c7ba7e07b1f4abb42c7e4bf8b3981b908643fe5f201695ec84171ab01bc9a289/merged",
+                "UpperDir": "/var/lib/docker/overlay2/c7ba7e07b1f4abb42c7e4bf8b3981b908643fe5f201695ec84171ab01bc9a289/diff",
+                "WorkDir": "/var/lib/docker/overlay2/c7ba7e07b1f4abb42c7e4bf8b3981b908643fe5f201695ec84171ab01bc9a289/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:b7f7d2967507ba709dbd1dd0426a5b0cdbe1ff936c131f8958c8d0f910eea19e",
+                "sha256:a6ebef4a95c345c844c2bf43ffda8e36dd6e053887dd6e283ad616dcc2376be6",
+                "sha256:838a37a24627f72df512926fc846dd97c93781cf145690516e23335cc0c27794",
+                "sha256:28ba7458d04b8551ff45d2e17dc2abb768bf6ed1a46bb262f26a24d21d8d7233",
+                "sha256:5ff3f3cfd20b5554dc1a41b6a548fb03767d70ddb381856f983c5b727d4e96ab",
+                "sha256:2c062b376448fff9cc9b8db50ca14bd070feabc677e33d7a2db627b27b96334d",
+                "sha256:94fb845e050a994ab2a297b31b55a2923d5901fcb6487526a09006c9aa8d2ce8",
+                "sha256:8bc9bb259e5e27f93e75387fa74491cdbda203ed70f271a888320e3f8f250d93",
+                "sha256:d17cfb6200aeb4d52599d8ec861ef5a0b2b8495693fc8e47caec73e1040acb07",
+                "sha256:91d90b7119f827c728aa78b7fa2e9d1bc25377486caca50d002699ea73a76fb9",
+                "sha256:4cdc17bdb5c901eb7ee102e4b485289c4e96ca87417f0513eb1874731589a8e5",
+                "sha256:c011746884103cec5887c0d42532cb3097a8b869bae3eae28e4547557f5b1dcf",
+                "sha256:6d8559512f2aae0be80705663f7d8b2ec74ba310d51284f60f98f5088784f782",
+                "sha256:84beda8c7df82527fea99aaea85608f1a96758ae29177a175883cd42c2ed59e0"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2020-09-22T15:33:59.334133773+09:00"
+        }
+    }
+]

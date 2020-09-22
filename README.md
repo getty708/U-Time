@@ -1,4 +1,7 @@
-# U-Time
+# U-Time (Pytorch)
+This is pytorch version of U-Time.
+This repository was forked from https://github.com/perslev/U-Time and the backend was replaced to `pytorch=1.6.0`.
+
 
 Implementation of the U-Time model for time-series segmentation as described 
 in:

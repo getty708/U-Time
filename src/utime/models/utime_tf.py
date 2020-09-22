@@ -17,7 +17,6 @@ from tensorflow.keras.layers import Input, BatchNormalization, Cropping2D, \
 from mpunet.logging import ScreenLogger
 from mpunet.utils.conv_arithmetics import compute_receptive_fields
 
-
 class UTime(Model):
     """
     OBS: Uses 2D operations internally with a 'dummy' axis, so that a batch

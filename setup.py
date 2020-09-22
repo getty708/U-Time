@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-from utime import __version__
+from src.utime import __version__
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -17,15 +17,16 @@ with open("requirements.txt") as req_file:
 setup(
     name='utime',
     version=__version__,
-    description='A deep learning framework for automatic PSG sleep analysis.',
+    description=('A deep learning framework for automatic PSG sleep analysis.'
+                 'This is a pytorch inplementation of  U-Time. For an original'
+                 'package, check https://github.com/perslev/U-Time .'),
     long_description=readme + "\n\n" + history,
-    author='Mathias Perslev',
-    author_email='map@di.ku.dk',
-    url='https://github.com/perslev/U-Time',
+    author='Naoya Yoshimura',
+    author_email='yoshimura.naoya@ist.osaka-u.ac.jp',
+    url='https://github.com/getty708/U-Time-PyTorch',
     license="LICENSE.txt",
     packages=["utime"],
-    package_dir={'utime':
-                 'utime'},
+    package_dir={'utime': 'src/utime'},
     entry_points={
        'console_scripts': [
            'ut=utime.bin.ut:entry_func',

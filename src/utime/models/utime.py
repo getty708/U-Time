@@ -8,14 +8,6 @@ Processing Systems (NeurIPS 2019)
 """
 import numpy as np
 
-# import tensorflow as tf
-# from tensorflow.keras.models import Model
-# from tensorflow.keras import regularizers
-# from tensorflow.keras.layers import Input, BatchNormalization, Cropping2D, \
-#                                     Concatenate, MaxPooling2D, Dense, \
-#                                     UpSampling2D, ZeroPadding2D, Lambda, Conv2D, \
-#                                     AveragePooling2D, DepthwiseConv2D
-
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -40,6 +32,146 @@ def get_padding_size(x, k, s, d):
     return p
 
 
+class SingleConvBlock(nn.Module):
+    """
+
+    This block is consist from (Conv-BN) * 1.
+    
+    Todo:
+         Move to the top of this file.
+    """
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        n_periods,
+        # conv layers
+        afunc=F.elu,
+        dilation=2,
+        kernel_size=5,
+        padding='same',
+        stride=1,
+    ):
+        """
+        Args:
+            in_ch/out_ch (int):
+                input/output channels.
+            pool_size (int):
+                kernel size of a pooling operation. When pool_size <= 0, pooling opperation
+                will be skipped. (Default: -1)
+            kernel_size (int):
+                Kernel size for convolution layers. (Default: 5)
+            dilation (int):
+                (Default: 2)
+            padding (str):
+                padding algorithm: `same` or `valid`.
+            stride (int):
+                (Default: 1)
+            afunc (function):
+                Activation function for convolution layers (Default: F.elu)
+
+        """
+        super().__init__()
+        if padding == 'same':
+            pad = get_padding_size(
+                n_periods, kernel_size, stride, dilation)
+        else:
+            pad = 0
+        
+        self.conv1 = nn.Conv2d(
+            in_ch,
+            out_ch,
+            kernel_size=(1, kernel_size),
+            stride=(1, stride),
+            padding=(0, pad),
+            dilation=(1, dilation),
+        )
+        self.bn1 = nn.BatchNorm2d(out_ch)
+        self.afunc = afunc
+        
+    def forward(self, x):
+        x = self.afunc(self.bn1(self.conv1(x)))
+        return x
+
+
+class DoubleConvBlock(nn.Module):
+    """
+
+    This block is consist from (Conv-BN) * 2.
+    
+    Todo:
+         Move to the top of this file.
+    """
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        n_periods,
+        mid_ch=None,
+        # conv layers
+        afunc=F.elu,
+        dilation=2,
+        filters=None,
+        kernel_size=5,
+        padding='same',
+        stride=1,
+    ):
+        """
+        Args:
+            in_ch/out_ch (int):
+                input/output channels.
+            pool_size (int):
+                kernel size of a pooling operation. When pool_size <= 0, pooling opperation
+                will be skipped. (Default: -1)
+            kernel_size (int):
+                Kernel size for convolution layers. (Default: 5)
+            dilation (int):
+                (Default: 2)
+            padding (str):
+                padding algorithm: `same` or `valid`.
+            stride (int):
+                (Default: 1)
+            afunc (function):
+                Activation function for convolution layers (Default: F.elu)
+
+        """
+        super().__init__()
+        if padding == 'same':
+            pad = get_padding_size(
+                n_periods, kernel_size, stride, dilation)
+        else:
+            pad = 0
+
+        if mid_ch == None:
+            mid_ch = out_ch
+            
+        self.conv1 = nn.Conv2d(
+            in_ch,
+            mid_ch,
+            kernel_size=(1, kernel_size),
+            stride=(1, stride),
+            padding=(0, pad),
+            dilation=(1, dilation),
+        )
+        self.bn1 = nn.BatchNorm2d(mid_ch)
+        self.conv2 = nn.Conv2d(
+            mid_ch,
+            out_ch,
+            kernel_size=(1, kernel_size),
+            stride=(1, stride),
+            padding=(0, pad),
+            dilation=(1, dilation),
+        )
+        self.bn2 = nn.BatchNorm2d(out_ch)
+        self.afunc = afunc
+        
+    def forward(self, x):
+        x_ = x
+        x_ = self.afunc(self.bn1(self.conv1(x_)))
+        x_ = self.afunc(self.bn2(self.conv2(x_)))
+        return x_
+
+
 class EncoderBlock(nn.Module):
     """This is a single block for U-Time encoder.
     The block consists from Conv2D - BN - Conv2d - BN - MaxPool.
@@ -51,7 +183,6 @@ class EncoderBlock(nn.Module):
         ``padding`` is allways set to 'same'.
 
     """
-
     def __init__(
         self,
         in_ch,
@@ -218,6 +349,79 @@ class UTimeEncoder(nn.ModuleList):
 
         return encoded, residual_connections
 
+
+class UpBlock(nn.Module):
+    """This is an implementation of a single decoder block for U-Time.
+    The block consists from ConvTransposed2d - (Conv2d - BN) - Merge - (Conv2d - BN)
+    - (Conv2d - BN).
+    
+    Attributes:
+        None: -
+    
+    Note:
+        ``padding`` is allways set to 'same'.
+
+    """
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        n_periods,
+        afunc=F.elu,
+        mode='bilinear',
+    ):
+        """
+        Args:
+            in_ch/out_ch (int):
+                input/output channels.
+            afunc (function):
+                Activation function for convolution layers (Default: F.elu)
+            mode (str):
+                the upsampling algorithm: ``bilinear``(``nn.Upsample``), or 
+                ``deconv``(``nn.ConvTransposed2d``, working). (Default: bilinear)
+        
+        """
+        super().__init__()
+        self.afunc = afunc
+        
+        # -- Upsamplomg Layer --
+        if mode == 'bilinear':
+           # FIXME: Why this convoltion is needed right after up()?
+           # In the implementation by milesial, the conv is not used.
+           # https://github.com/milesial/Pytorch-UNet/blob/67bf11b4db4c5f2891bd7e8e7f58bcde8ee2d2db/unet/unet_parts.py#L63        
+           self.up = nn.Upsample(
+               scale_factor=(1, 2),
+               mode='bilinear',
+               align_corners=True)
+           self.conv0 = SingleConvBlock(in_ch, in_ch, n_periods)
+        else:
+            raise ValueError()
+        
+        # --  Double Conv Layer --
+        self.double_conv = DoubleConvBlock(in_ch * 2, out_ch, n_periods)
+        
+                
+    def forward(self, x1, x2):
+        """ 
+        Args:
+            x1 (Tensor): a tensor from main stream. shape = (N, C, H, W)
+            x2 (Tensor): a tensor from downsampling layer.
+        """
+        # -- upsampling --
+        x1 = self.up(x1)
+        x1 = self.conv0(x1)
+        
+        # -- Concat --
+        diff_h = x2.size()[2] - x1.size()[2]
+        diff_w = x2.size()[3] - x1.size()[3]
+        x1 = F.pad(x1, [diff_h // 2, diff_h - diff_h // 2,
+                        diff_w // 2, diff_w - diff_w // 2])
+        x = torch.cat([x1, x2], dim=1)
+        
+        # -- conv --
+        x = self.double_conv(x)
+        return x
+    
 
 class UTime(nn.Module):
     """

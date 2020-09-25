@@ -1,4 +1,4 @@
-# U-Time (Pytorch)
+# U-Time (Pytorch) ... Working
 This is pytorch version of U-Time.
 This repository was forked from https://github.com/perslev/U-Time and the backend was replaced to `pytorch=1.6.0`.
 
@@ -100,3 +100,9 @@ $ pip install -U mne==0.19
 ```bash
 export CUDA_VISIBLE_DEVICES=0
 ```
+
+
+## Reference
++ https://github.com/perslev/MultiPlanarUNet
++ https://github.com/perslev/U-Time
+

@@ -7,7 +7,8 @@ import torch
 from utime.models.utime import (DoubleConvBlock,
                                 DownBlock,
                                 UpBlock,
-                                UTimeEncoder,)
+                                UTimeEncoder,
+                                UTimeDecoder,)
 
 
 BATCH_SIZE = 10
@@ -126,3 +127,54 @@ def test_UpBlock__01():
     assert y.size(1) == OUT_CH
     assert y.size(2) == 1
     assert y.size(3) == N_PERIODS
+
+
+@pytest.mark.parametrize("depth,pools,w_out",(
+    (2, [4, 5], 5),
+))
+def test_UTimeDecoder__01(depth, pools, w_out):
+    """ Build an encoder. """
+    depth = 2
+    pools = [4, 5]
+    in_ch = 128
+    n_periods = N_PERIODS // (2**3)
+    batch_shape = (BATCH_SIZE, in_ch, 1, n_periods)
+    
+    # -- build --
+    net = UTimeDecoder(
+        in_ch,        
+        N_PERIODS,
+        depth=depth,
+        pools=pools,
+    )
+    net.to(torch.double)
+    pprint.pprint(net)
+
+    # -- forward --
+    x1 = np.random.uniform(-1, 1, batch_shape)
+    x1_tensor = torch.from_numpy(x1).to(dtype=torch.double)
+
+    x2_list = []
+    in_ch, n_periods = in_ch // 2, n_periods * 2
+    for i, pool_size in enumerate(pools):
+        batch_shape_2 = (BATCH_SIZE, in_ch, 1, n_periods)
+        x2 = np.random.uniform(-1, 1, batch_shape_2)
+        x2_list.append(torch.from_numpy(x2).to(dtype=torch.double))
+        
+        in_ch //= 2
+        n_periods *= 2
+ 
+    
+    y = net(x1_tensor, x2_list)
+    print(f"y: {y.size()}, {y.dtype}")
+    # print(f"res: len={len(res)}, res[0]={res[0].size()}")
+
+    # assert y.size(0) == BATCH_SIZE
+    # assert y.size(1) == OUT_CH * (2**depth)
+    # assert y.size(2) == 1
+    # assert y.size(3) == w_out
+    
+    # assert len(res) == depth
+    # assert len(net.filters) == depth + 1
+    # np.testing.assert_array_equal(net.filters, [IN_CH, IN_CH*2, IN_CH*4])
+    

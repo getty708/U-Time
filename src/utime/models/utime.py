@@ -55,21 +55,20 @@ class SingleConvBlock(nn.Module):
         """
         Args:
             in_ch/out_ch (int):
-                input/output channels.
-            pool_size (int):
-                kernel size of a pooling operation. When pool_size <= 0, pooling opperation
-                will be skipped. (Default: -1)
-            kernel_size (int):
-                Kernel size for convolution layers. (Default: 5)
+                input/output channels
+            n_periods (int):
+                length of input sequence
+            afunc (function):
+                Activation function for convolution layers (Default: F.elu)
             dilation (int):
                 (Default: 2)
+            kernel_size (int):
+                Kernel size for convolution layers. (Default: 5)
             padding (str):
                 padding algorithm: `same` or `valid`.
             stride (int):
                 (Default: 1)
-            afunc (function):
-                Activation function for convolution layers (Default: F.elu)
-
+        
         """
         super().__init__()
         if padding == 'same':
@@ -108,10 +107,8 @@ class DoubleConvBlock(nn.Module):
         out_ch,
         n_periods,
         mid_ch=None,
-        # conv layers
         afunc=F.elu,
         dilation=2,
-        filters=None,
         kernel_size=5,
         padding='same',
         stride=1,
@@ -119,21 +116,23 @@ class DoubleConvBlock(nn.Module):
         """
         Args:
             in_ch/out_ch (int):
-                input/output channels.
-            pool_size (int):
-                kernel size of a pooling operation. When pool_size <= 0, pooling opperation
-                will be skipped. (Default: -1)
-            kernel_size (int):
-                Kernel size for convolution layers. (Default: 5)
+                input/output channels
+            n_periods (int):
+                length of input sequence
+            mid_ch (int or None):
+                channels for out_ch of 1st conv and in_ch of 2nd conv.
+                If mid_ch is None, mid_ch = out_ch.
+            afunc (function):
+                activation function for convolution layers (Default: F.elu)
             dilation (int):
                 (Default: 2)
+            kernel_size (int):
+                kernel size for convolution layers. (Default: 5)
             padding (str):
                 padding algorithm: `same` or `valid`.
             stride (int):
                 (Default: 1)
-            afunc (function):
-                Activation function for convolution layers (Default: F.elu)
-
+        
         """
         super().__init__()
         if padding == 'same':
@@ -166,10 +165,9 @@ class DoubleConvBlock(nn.Module):
         self.afunc = afunc
         
     def forward(self, x):
-        x_ = x
-        x_ = self.afunc(self.bn1(self.conv1(x_)))
-        x_ = self.afunc(self.bn2(self.conv2(x_)))
-        return x_
+        x = self.afunc(self.bn1(self.conv1(x)))
+        x = self.afunc(self.bn2(self.conv2(x)))
+        return x
 
 
 class EncoderBlock(nn.Module):
@@ -393,7 +391,12 @@ class UpBlock(nn.Module):
                scale_factor=(1, 2),
                mode='bilinear',
                align_corners=True)
-           self.conv0 = SingleConvBlock(in_ch, in_ch, n_periods)
+           self.conv0 = SingleConvBlock(
+               in_ch,
+               in_ch,
+               n_periods,
+               dilation=1,
+           )
         else:
             raise ValueError()
         

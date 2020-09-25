@@ -92,7 +92,6 @@ class SingleConvBlock(nn.Module):
         x = self.afunc(self.bn1(self.conv1(x)))
         return x
 
-
 class DoubleConvBlock(nn.Module):
     """
 
@@ -170,7 +169,7 @@ class DoubleConvBlock(nn.Module):
         return x
 
 
-class EncoderBlock(nn.Module):
+class DownBlock(nn.Module):
     """This is a single block for U-Time encoder.
     The block consists from Conv2D - BN - Conv2d - BN - MaxPool.
 
@@ -181,90 +180,28 @@ class EncoderBlock(nn.Module):
         ``padding`` is allways set to 'same'.
 
     """
-    def __init__(
-        self,
-        in_ch,
-        out_ch,
-        n_periods,
-        # conv layers
-        afunc=F.elu,
-        dilation=2,
-        filters=None,
-        kernel_size=5,
-        padding='same',
-        stride=1,
-        # pooling layer
-        pool_size=-1,
-    ):
+    def __init__(self, in_ch, out_ch, n_periods, pool_size):
         """
         Args:
             in_ch/out_ch (int):
                 input/output channels.
+            n_periods (int):
+                length of input sequence
             pool_size (int):
                 kernel size of a pooling operation. When pool_size <= 0, pooling opperation
-                will be skipped. (Default: -1)
-            kernel_size (int):
-                Kernel size for convolution layers. (Default: 5)
-            dilation (int):
-                (Default: 2)
-            padding (int):
-                Padding size for convolutional layers. (Default: 2)
-            stride (int):
-                (Default: 1)
-            afunc (function):
-                Activation function for convolution layers (Default: F.elu)
-
+                will be skipped.
         """
         super().__init__()
-        # dilation = 1
+        self.double_conv = DoubleConvBlock(in_ch, out_ch, n_periods)
+        self.pool = nn.MaxPool2d(kernel_size=(1, pool_size))
 
-        if padding == 'same':
-            pad = get_padding_size(
-                n_periods, kernel_size, stride, dilation)
-            pad_pool = get_padding_size(
-                n_periods, pool_size, stride, 1)
-        else:
-            pad = 0
-            pad_pool = 0
-        print("padding:", pad, pad_pool)
-        
-        self.conv1 = nn.Conv2d(
-            in_ch,
-            out_ch,
-            kernel_size=(1, kernel_size),
-            stride=(1, stride),
-            padding=(0, pad),
-            dilation=(1, dilation),
-        )
-        self.bn1 = nn.BatchNorm2d(out_ch)
-        self.conv2 = nn.Conv2d(
-            out_ch,
-            out_ch,
-            kernel_size=(1, kernel_size),
-            stride=(1, stride),
-            padding=(0, pad),
-            dilation=(1, dilation),
-        )
-        self.bn2 = nn.BatchNorm2d(out_ch)
-        if pool_size > 0:
-            self.is_pool = True
-            self.pool = nn.MaxPool2d(
-                kernel_size=(1, pool_size),
-                padding=(0, pad_pool),
-            )
-        else:
-            self.is_pool = False
-        self.afunc = afunc
         
     def forward(self, x):
-        x_ = x
-        x_ = self.afunc(self.bn1(self.conv1(x_)))
-        x_ = self.afunc(self.bn2(self.conv2(x_)))
-        if self.is_pool:
-            x_ = self.pool(x_)
-        return x_
+        x = self.double_conv(x)
+        x = self.pool(x)
+        return x
 
-
+    
 class UTimeEncoder(nn.ModuleList):
     """
     Attributes:
@@ -286,54 +223,35 @@ class UTimeEncoder(nn.ModuleList):
     def __init__(
         self,
         in_ch,
-        out_ch_init,
         n_periods,
-        afunc=F.elu,
         depth=4,
-        dilation=2,
-        kernel_size=5,
         pools=None,
-        stride=1,
     ):
         super().__init__()
         self.depth = depth
         self.in_ch = in_ch
-        filters = [in_ch] # list of output channels.
+        filters = [] # list of output channels.
         
-        # -- main blociks --
+        # -- main blocks --
         l = []
-        in_ch, out_ch = in_ch, out_ch_init
-        for i in range(depth):
+        n_periods = n_periods
+        for i in range(depth):            
             l.append(
-                EncoderBlock(
-                    in_ch,
-                    out_ch,
-                    n_periods,
-                    afunc=afunc,
-                    dilation=dilation,
-                    kernel_size=kernel_size,
-                    pool_size=pools[i],
-                )
+                DownBlock(in_ch, in_ch * 2, n_periods, pools[i]),
             )
-            filters.append(out_ch)
-            in_ch = out_ch
-            out_ch = int(out_ch * 2)
+            filters.append(in_ch)
+            in_ch = int(in_ch * 2)
+            n_periods //= pools[i]
         self.conv_blocks = nn.ModuleList(l)
-
+        
         # -- bottom --
-        self.bottom = EncoderBlock(
-            in_ch,
-            out_ch,
-            n_periods,
-            afunc=afunc,
-            dilation=1,
-            kernel_size=kernel_size,
-            pool_size=-1,
-        )
-        filters.append(out_ch)
-    
+        self.bottom = DoubleConvBlock(in_ch, in_ch, n_periods, dilation=1)
+        filters.append(in_ch)
+        
+        # -- Store meta data --
         self.filters = tuple(filters)
-
+        
+        
     def forward(self, x):
         x_ = x
 
@@ -347,7 +265,7 @@ class UTimeEncoder(nn.ModuleList):
 
         return encoded, residual_connections
 
-
+ 
 class UpBlock(nn.Module):
     """This is an implementation of a single decoder block for U-Time.
     The block consists from ConvTransposed2d - (Conv2d - BN) - Merge - (Conv2d - BN)
@@ -365,15 +283,14 @@ class UpBlock(nn.Module):
         in_ch,
         out_ch,
         n_periods,
-        afunc=F.elu,
         mode='bilinear',
     ):
         """
         Args:
             in_ch/out_ch (int):
                 input/output channels.
-            afunc (function):
-                Activation function for convolution layers (Default: F.elu)
+            n_periods (int):
+                length of input sequence
             mode (str):
                 the upsampling algorithm: ``bilinear``(``nn.Upsample``), or 
                 ``deconv``(``nn.ConvTransposed2d``, working). (Default: bilinear)
@@ -384,19 +301,14 @@ class UpBlock(nn.Module):
         
         # -- Upsamplomg Layer --
         if mode == 'bilinear':
-           # FIXME: Why this convoltion is needed right after up()?
-           # In the implementation by milesial, the conv is not used.
-           # https://github.com/milesial/Pytorch-UNet/blob/67bf11b4db4c5f2891bd7e8e7f58bcde8ee2d2db/unet/unet_parts.py#L63        
-           self.up = nn.Upsample(
-               scale_factor=(1, 2),
-               mode='bilinear',
-               align_corners=True)
-           self.conv0 = SingleConvBlock(
-               in_ch,
-               in_ch,
-               n_periods,
-               dilation=1,
-           )
+            # FIXME: Why this convoltion is needed right after up()?
+            # In the implementation by milesial, the conv is not used.
+            # https://github.com/milesial/Pytorch-UNet/blob/67bf11b4db4c5f2891bd7e8e7f58bcde8ee2d2db/unet/unet_parts.py#L63        
+            self.up = nn.Upsample(
+                scale_factor=(1, 2),
+                mode='bilinear',
+                align_corners=True)
+            self.conv0 = SingleConvBlock(in_ch, in_ch, n_periods, dilation=1)
         else:
             raise ValueError()
         
@@ -426,6 +338,9 @@ class UpBlock(nn.Module):
         return x
     
 
+
+
+    
 class UTime(nn.Module):
     """
     Input must take channel-first format (BCHW).

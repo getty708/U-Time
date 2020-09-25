@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from utime.models.utime import (DoubleConvBlock,
-                                EncoderBlock,
+                                DownBlock,
                                 UpBlock,
                                 UTimeEncoder,)
 
@@ -41,18 +41,18 @@ def test_DoubleConvBlock__01():
 
 
 @pytest.mark.parametrize("pool_size,w_out",(
-    (-1, N_PERIODS),
+    (1, N_PERIODS),
     (4,  N_PERIODS//4),
 ))
-def test_EncoderBlock__01(pool_size, w_out):
+def test_DownBlock__01(pool_size, w_out):
     batch_shape = (BATCH_SIZE, IN_CH, 1, N_PERIODS)
 
     # -- build --
-    net = EncoderBlock(
+    net = DownBlock(
         IN_CH,
         OUT_CH,
         N_PERIODS,
-        pool_size=pool_size)
+        pool_size)
     net.to(torch.double)
     pprint.pprint(net)
     
@@ -80,7 +80,6 @@ def test_UTimeEncoder__01(depth, pools, w_out):
     # -- build --
     net = UTimeEncoder(
         IN_CH,
-        OUT_CH,
         N_PERIODS,
         depth=depth,
         pools=pools,
@@ -99,8 +98,10 @@ def test_UTimeEncoder__01(depth, pools, w_out):
     assert y.size(1) == OUT_CH * (2**depth)
     assert y.size(2) == 1
     assert y.size(3) == w_out
-
+    
     assert len(res) == depth
+    assert len(net.filters) == depth + 1
+    np.testing.assert_array_equal(net.filters, [IN_CH, IN_CH*2, IN_CH*4])
     
     
 def test_UpBlock__01():

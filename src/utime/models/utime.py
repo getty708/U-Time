@@ -202,21 +202,16 @@ class DownBlock(nn.Module):
 class UTimeEncoder(nn.ModuleList):
     """
     Attributes:
+        input_dims (int):
+            number of input channels.
+        out_ch_1st (int):
+            number of convolutional filters of 1st convolutional filters
         depth (int):
             Number of conv blocks in encoding layer (number of 2x2 max pools)
             Note: each block doubles the filter count while halving the spatial
             dimensions of the features.
-        dilation (int):
-            TODO
-        activation (string):
-            Activation function for convolution layers
-        kernel_size (int):
-            Kernel size for convolution layers
-        pools ([int]):
-            list of pooling size. (Default: None, required)
-
+    
     """
-
     def __init__(
         self,
         in_ch,
@@ -227,16 +222,16 @@ class UTimeEncoder(nn.ModuleList):
         super().__init__()
         self.depth = depth
         self.in_ch = in_ch
+        self.pools = pools
         filters = [] # list of output channels.
         
         # -- main blocks --
         l = []
-        n_periods = n_periods
-        for i in range(depth):            
+        for i in range(depth):
             l.append(
                 DownBlock(in_ch, in_ch * 2, n_periods, pools[i]),
             )
-            filters.append(in_ch)
+            filters.append(in_ch * 2)
             in_ch = int(in_ch * 2)
             n_periods //= pools[i]
         self.conv_blocks = nn.ModuleList(l)
@@ -390,7 +385,7 @@ class UTimeDecoder(nn.ModuleList):
         
         
     def forward(self, x1, x2_list):
-        """ 
+        """
         Args:
             x1 (Tensor): input
             x2_list ([Tensor]): tensors for skipped connections.
@@ -401,17 +396,38 @@ class UTimeDecoder(nn.ModuleList):
             x1 = self.up_blocks[i](x1, x2_list[i])
         return x1
 
+
+class SegmentClassifier(nn.Module):
+    """ Implementation of a segment clasifier proposed in UTime.
+    """
+    def __init__(self, in_ch, data_per_period):
+        """
+        Args:
+            in_ch (int): the number of classes.
+        """
+        self.in_ch = in_ch
+        self.data_per_period = data_per_period
+
+        # point-wise convolution
+        self.avg_pool = nn.AveragePooling2d(kernel_size=(1, data_per_period))
+        self.conv = nn.Conv2d(in_ch, in_ch, kernel=(1, 1), stride=(1, 1))
+
+    def forward(self, x):
+        x = self.avg_pool(x)
+        out = F.softmax(self.conv(x), dim=1)
+        return out        
+
     
 class UTime(nn.Module):
     """
     Input must take channel-first format (BCHW).
     This model use 2D convolutional filter with kernel size = (1 x f).
-
+    
     OBS: Uses 2D operations internally with a 'dummy' axis, so that a batch
          of shape [bs, d, c] is processed as [bs, d, 1, c]. These operations
          are (on our systems, at least) currently significantly faster than
          their 1D counterparts in tf.keras.
-
+    
     See also original U-net paper at http://arxiv.org/abs/1505.04597
 
     Attributes:
@@ -424,6 +440,7 @@ class UTime(nn.Module):
         self,
         n_classes,
         batch_shape,
+        in_ch_enc=16,
         depth=4,
         pools=(10, 8, 6, 4),
         data_per_prediction=None,
@@ -461,6 +478,7 @@ class UTime(nn.Module):
         assert len(batch_shape) == 4
         self.n_channels = batch_shape[1]
         self.input_dims = batch_shape[2]
+        self.in_ch_enc  = in_ch_enc
         self.n_periods = batch_shape[3]
         self.n_classes = int(n_classes)
         self.pools = pools
@@ -469,9 +487,26 @@ class UTime(nn.Module):
                 "Argument 'pools' must be a single integer or a "
                 "list of values of length equal to 'depth'."
             )
-
+        
         # -- Model --
-        raise NotImplementedError()
+        # NOTE: Add input encoding layer (UNet)
+        # Ref: https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
+        self.inc = DoubleConvBlock(self.input_dims, in_ch_enc, self.n_periods)
+        
+        self.encoder = UTimeEncoder(in_ch_enc, self.n_periods)
+        
+        in_ch_dec =  self.encoder.filters[-1] # FIXME: 
+        n_periods_dec = None # FIXME:
+        self.decoder = UTimeDecoder(in_ch_dec, n_periods_dec)
+        
+        in_ch_dc =  self.decoder.filters[-1] # FIXME: 
+        n_periods_dc = None # FIXME:        
+        self.dence_clf = SingleConvBlock(in_ch_dc, self.n_classes, self.n_periods)
+
+        in_ch_sc = self.n_classes
+        self.segment_clf = SegmentClassifier(in_ch_sc, data_per_period)
+        
+        # raise NotImplementedError()
     
     
         # FIXME: activation func?

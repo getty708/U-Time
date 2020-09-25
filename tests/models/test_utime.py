@@ -8,7 +8,8 @@ from utime.models.utime import (DoubleConvBlock,
                                 DownBlock,
                                 UpBlock,
                                 UTimeEncoder,
-                                UTimeDecoder,)
+                                UTimeDecoder,
+                                UTime)
 
 
 BATCH_SIZE = 10
@@ -69,10 +70,10 @@ def test_DownBlock__01(pool_size, w_out):
     assert y.size(3) == w_out
 
     
-@pytest.mark.parametrize("depth,pools,w_out",(
-    (2, [4, 5], 5),
+@pytest.mark.parametrize("depth,pools,ch_out,w_out",(
+    (2, [4, 5], 32 * 4, 5),
 ))
-def test_UTimeEncoder__01(depth, pools, w_out):
+def test_UTimeEncoder__01(depth, pools, ch_out, w_out):
     """ Build an encoder. """
     depth = 2
     pools = [4, 5]
@@ -87,22 +88,22 @@ def test_UTimeEncoder__01(depth, pools, w_out):
     )
     net.to(torch.double)
     pprint.pprint(net)
-
+    
     # -- forward --
     x = np.random.uniform(-1, 1, batch_shape)
     x_tensor = torch.from_numpy(x).to(dtype=torch.double)
     (y, res) = net(x_tensor)
     print(f"y: {y.size()}, {y.dtype}")
     print(f"res: len={len(res)}, res[0]={res[0].size()}")
-
+    
     assert y.size(0) == BATCH_SIZE
-    assert y.size(1) == OUT_CH * (2**depth)
+    assert y.size(1) == ch_out
     assert y.size(2) == 1
     assert y.size(3) == w_out
     
     assert len(res) == depth
     assert len(net.filters) == depth + 1
-    np.testing.assert_array_equal(net.filters, [IN_CH, IN_CH*2, IN_CH*4])
+    np.testing.assert_array_equal(net.filters, [IN_CH*2, IN_CH*4, IN_CH*4])
     
     
 def test_UpBlock__01():
@@ -177,4 +178,32 @@ def test_UTimeDecoder__01(depth, pools, w_out):
     # assert len(res) == depth
     # assert len(net.filters) == depth + 1
     # np.testing.assert_array_equal(net.filters, [IN_CH, IN_CH*2, IN_CH*4])
+    
+
+def test_UTime__01():
+    """ Build an encoder. """
+    n_classes = 10
+    input_dims = 6
+    batch_shape = (BATCH_SIZE, input_dims, 1, N_PERIODS)
+    
+    # -- build --
+    net = UTime(n_classes, batch_shape)
+    net.to(torch.double)
+    pprint.pprint(net)
+    
+    # # -- forward --
+    # x = np.random.uniform(-1, 1, batch_shape)
+    # x_tensor = torch.from_numpy(x).to(dtype=torch.double)
+    # (y, res) = net(x_tensor)
+    # print(f"y: {y.size()}, {y.dtype}")
+    # print(f"res: len={len(res)}, res[0]={res[0].size()}")
+    
+    # assert y.size(0) == BATCH_SIZE
+    # assert y.size(1) == ch_out
+    # assert y.size(2) == 1
+    # assert y.size(3) == w_out
+    
+    # assert len(res) == depth
+    # assert len(net.filters) == depth + 1
+    # np.testing.assert_array_equal(net.filters, [IN_CH, IN_CH*2, IN_CH*2])
     

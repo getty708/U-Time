@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 import torch
 
-from utime.models.utime import (DoubleConvBlock,
+from utime.models.utime import (SingleConvBlock,
+                                DoubleConvBlock,
                                 DownBlock,
                                 UpBlock,
                                 UTimeEncoder,
@@ -21,14 +22,35 @@ N_PERIODS = 100
 N_CLASSES = 10
 
 
+def test_SingleConvBlock__01():
+    batch_shape = (BATCH_SIZE, IN_CH, 1, N_PERIODS)
+
+    # -- build --
+    net = SingleConvBlock(
+        IN_CH,
+        OUT_CH)
+    net.to(torch.double)
+    pprint.pprint(net)
+
+    # -- forward --
+    x = np.random.uniform(-1, 1, batch_shape)
+    x_tensor = torch.from_numpy(x).to(dtype=torch.double)
+    y = net(x_tensor)
+    print(f"y: {y.size()}, {y.dtype}")
+
+    assert y.size(0) == BATCH_SIZE
+    assert y.size(1) == OUT_CH
+    assert y.size(2) == 1
+    assert y.size(3) == N_PERIODS
+
+
 def test_DoubleConvBlock__01():
     batch_shape = (BATCH_SIZE, IN_CH, 1, N_PERIODS)
 
     # -- build --
     net = DoubleConvBlock(
         IN_CH,
-        OUT_CH,
-        N_PERIODS)
+        OUT_CH)
     net.to(torch.double)
     pprint.pprint(net)
 
@@ -55,7 +77,6 @@ def test_DownBlock__01(pool_size, w_out):
     net = DownBlock(
         IN_CH,
         OUT_CH,
-        N_PERIODS,
         pool_size)
     net.to(torch.double)
     pprint.pprint(net)
@@ -84,7 +105,6 @@ def test_UTimeEncoder__01(depth, pools, ch_out, w_out):
     # -- build --
     net = UTimeEncoder(
         IN_CH,
-        N_PERIODS,
         depth=depth,
         pools=pools,
     )
@@ -111,10 +131,10 @@ def test_UTimeEncoder__01(depth, pools, ch_out, w_out):
 def test_UpBlock__01():
     n_period_x1 = N_PERIODS // 2
     batch_shape_x1 = (BATCH_SIZE, IN_CH, 1, n_period_x1)
-    batch_shape_x2 = (BATCH_SIZE, IN_CH, 1, N_PERIODS)
+    batch_shape_x2 = (BATCH_SIZE, IN_CH // 2, 1, N_PERIODS)
 
     # -- build --
-    net = UpBlock(IN_CH, OUT_CH, N_PERIODS)
+    net = UpBlock(IN_CH, OUT_CH)
     net.to(torch.double)
     pprint.pprint(net)
 
@@ -147,7 +167,6 @@ def test_UTimeDecoder__01(depth, pools, w_out):
     # -- build --
     net = UTimeDecoder(
         in_ch,
-        N_PERIODS,
         depth=depth,
         pools=pools,
     )
@@ -190,7 +209,6 @@ def test_DenseClassifier__01():
     net = DenseClassifier(
         IN_CH,
         N_CLASSES,
-        N_PERIODS,
     )
     net.to(torch.double)
     pprint.pprint(net)

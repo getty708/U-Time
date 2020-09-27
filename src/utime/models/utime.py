@@ -32,6 +32,21 @@ def get_padding_size(x, k, s, d):
     return p
 
 
+def get_padding_size_stride_is_1(x, k, d):
+    r""" Returns padding size which can make W_in == W_out when the stride size is 1.
+
+    .. math::
+        p = \lfloor \frac{1}{2} \{ (x-1)s - x + k + (k-1)(d-1) \} \rfloor
+
+    Args:
+        x (int): length of input/output sequence
+        k (int): kernel size
+        d (int): dilation size
+    """
+    p = int((k - 1) * d / 2)
+    return p
+
+
 class SingleConvBlock(nn.Module):
     """
 
@@ -43,7 +58,6 @@ class SingleConvBlock(nn.Module):
         self,
         in_ch,
         out_ch,
-        n_periods,
         afunc=F.elu,
         dilation=2,
         kernel_size=5,
@@ -54,8 +68,6 @@ class SingleConvBlock(nn.Module):
         Args:
             in_ch/out_ch (int):
                 input/output channels
-            n_periods (int):
-                length of input sequence
             afunc (function):
                 Activation function for convolution layers (Default: F.elu)
             dilation (int):
@@ -69,24 +81,31 @@ class SingleConvBlock(nn.Module):
 
         """
         super().__init__()
-        if padding == 'same':
-            pad = get_padding_size(
-                n_periods, kernel_size, stride, dilation)
-        else:
-            pad = 0
 
         self.conv1 = nn.Conv2d(
             in_ch,
             out_ch,
             kernel_size=(1, kernel_size),
             stride=(1, stride),
-            padding=(0, pad),
+            # padding=(0, pad),
+            padding=(0, 0),
             dilation=(1, dilation),
         )
         self.bn1 = nn.BatchNorm2d(out_ch)
         self.afunc = afunc
 
+        self.pad = None
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.dilation = dilation
+
     def forward(self, x):
+        if self.pad is None:
+            p = get_padding_size(
+                x.size(-1), self.kernel_size, self.stride, self.dilation)
+            self.pad = (p, p, 0, 0)
+
+        x = F.pad(x, self.pad, 'constant', 0)
         x = self.afunc(self.bn1(self.conv1(x)))
         return x
 
@@ -104,7 +123,6 @@ class DoubleConvBlock(nn.Module):
         self,
         in_ch,
         out_ch,
-        n_periods,
         mid_ch=None,
         afunc=F.elu,
         dilation=2,
@@ -116,8 +134,6 @@ class DoubleConvBlock(nn.Module):
         Args:
             in_ch/out_ch (int):
                 input/output channels
-            n_periods (int):
-                length of input sequence
             mid_ch (int or None):
                 channels for out_ch of 1st conv and in_ch of 2nd conv.
                 If mid_ch is None, mid_ch = out_ch.
@@ -134,11 +150,6 @@ class DoubleConvBlock(nn.Module):
 
         """
         super().__init__()
-        if padding == 'same':
-            pad = get_padding_size(
-                n_periods, kernel_size, stride, dilation)
-        else:
-            pad = 0
 
         if mid_ch == None:
             mid_ch = out_ch
@@ -148,7 +159,8 @@ class DoubleConvBlock(nn.Module):
             mid_ch,
             kernel_size=(1, kernel_size),
             stride=(1, stride),
-            padding=(0, pad),
+            # padding=(0, pad),
+            padding=(0, 0),
             dilation=(1, dilation),
         )
         self.bn1 = nn.BatchNorm2d(mid_ch)
@@ -157,14 +169,28 @@ class DoubleConvBlock(nn.Module):
             out_ch,
             kernel_size=(1, kernel_size),
             stride=(1, stride),
-            padding=(0, pad),
+            # padding=(0, pad),
+            padding=(0, 0),
             dilation=(1, dilation),
         )
         self.bn2 = nn.BatchNorm2d(out_ch)
         self.afunc = afunc
 
+        self.pad = None
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.dilation = dilation
+
     def forward(self, x):
+        if self.pad is None:
+            p = get_padding_size(
+                x.size(-1), self.kernel_size, self.stride, self.dilation)
+            self.pad = (p, p, 0, 0)
+
+        x = F.pad(x, self.pad, 'constant', 0)
         x = self.afunc(self.bn1(self.conv1(x)))
+
+        x = F.pad(x, self.pad, 'constant', 0)
         x = self.afunc(self.bn2(self.conv2(x)))
         return x
 
@@ -181,19 +207,17 @@ class DownBlock(nn.Module):
 
     """
 
-    def __init__(self, in_ch, out_ch, n_periods, pool_size):
+    def __init__(self, in_ch, out_ch, pool_size):
         """
         Args:
             in_ch/out_ch (int):
                 input/output channels.
-            n_periods (int):
-                length of input sequence
             pool_size (int):
                 kernel size of a pooling operation. When pool_size <= 0, pooling opperation
                 will be skipped.
         """
         super().__init__()
-        self.double_conv = DoubleConvBlock(in_ch, out_ch, n_periods)
+        self.double_conv = DoubleConvBlock(in_ch, out_ch)
         self.pool = nn.MaxPool2d(kernel_size=(1, pool_size))
 
     def forward(self, x):
@@ -219,7 +243,6 @@ class UTimeEncoder(nn.ModuleList):
     def __init__(
         self,
         in_ch,
-        n_periods,
         depth=4,
         pools=None,
     ):
@@ -233,15 +256,14 @@ class UTimeEncoder(nn.ModuleList):
         l = []
         for i in range(depth):
             l.append(
-                DownBlock(in_ch, in_ch * 2, n_periods, pools[i]),
+                DownBlock(in_ch, in_ch * 2, pools[i]),
             )
             filters.append(in_ch * 2)
             in_ch = int(in_ch * 2)
-            n_periods //= pools[i]
         self.conv_blocks = nn.ModuleList(l)
 
         # -- bottom --
-        self.bottom = DoubleConvBlock(in_ch, in_ch, n_periods, dilation=1)
+        self.bottom = DoubleConvBlock(in_ch, in_ch, dilation=1)
         filters.append(in_ch)
 
         # -- Store meta data --
@@ -281,7 +303,6 @@ class UpBlock(nn.Module):
         self,
         in_ch,
         out_ch,
-        n_periods,
         mode='bilinear',
     ):
         """
@@ -290,8 +311,6 @@ class UpBlock(nn.Module):
                 number of input channels of ``x1`` (main stream).
             out_ch (int):
                 input/output channels.
-            n_periods (int):
-                length of input sequence
             mode (str):
                 the upsampling algorithm: ``bilinear``(``nn.Upsample``), or 
                 ``deconv``(``nn.ConvTransposed2d``, working). (Default: bilinear)
@@ -309,12 +328,12 @@ class UpBlock(nn.Module):
                 mode='bilinear',
                 align_corners=True)
             self.conv0 = SingleConvBlock(
-                in_ch, in_ch // 2, n_periods, dilation=1)
+                in_ch, in_ch // 2, dilation=1)
         else:
             raise ValueError()
 
         # --  Double Conv Layer --
-        self.double_conv = DoubleConvBlock(in_ch, out_ch, n_periods)
+        self.double_conv = DoubleConvBlock(in_ch, out_ch)
 
     def forward(self, x1, x2):
         """ 
@@ -353,7 +372,6 @@ class UTimeDecoder(nn.ModuleList):
     def __init__(
         self,
         in_ch,
-        n_periods,
         depth=4,
         pools=None,
     ):
@@ -361,8 +379,6 @@ class UTimeDecoder(nn.ModuleList):
         Args:
             in_ch/out_ch (int):
                 input/output channels
-            n_periods (int):
-                length of input sequence
             depth (int): -
             pools ([list]):
                 list of kernel size which is used in pooling layers of the encoder.
@@ -376,14 +392,12 @@ class UTimeDecoder(nn.ModuleList):
 
         # -- main blocks --
         l = []
-        n_periods = n_periods
         for i, pool in enumerate(reversed(pools)):
             l.append(
-                UpBlock(in_ch, in_ch // 2, n_periods),
+                UpBlock(in_ch, in_ch // 2),
             )
             filters.append(in_ch // 2)
             in_ch //= 2
-            n_periods *= pools[i]
         self.up_blocks = nn.ModuleList(l)
 
         # -- Store meta data --
@@ -406,7 +420,7 @@ class DenseClassifier(nn.Module):
     """ Implementation of a dense classifier proposed in UTime.
     """
 
-    def __init__(self, in_ch, n_classes, n_periods):
+    def __init__(self, in_ch, n_classes):
         """
         Args:
             in_ch (int): the number of classes.
@@ -416,7 +430,7 @@ class DenseClassifier(nn.Module):
         self.n_classes = n_classes
 
         self.conv = SingleConvBlock(
-            in_ch, n_classes, n_periods, afunc=torch.tanh)
+            in_ch, n_classes, afunc=torch.tanh)
 
     def forward(self, x):
         x = self.conv(x)
@@ -457,10 +471,6 @@ class UTime(nn.Module):
          their 1D counterparts in tf.keras.
 
     See also original U-net paper at http://arxiv.org/abs/1505.04597
-
-    Attributes:
-       n_periods (int): length of sequence (?)
-
 
     """
 
@@ -507,6 +517,7 @@ class UTime(nn.Module):
         self.n_channels = batch_shape[1]
         self.input_dims = batch_shape[2]
         self.in_ch_enc = in_ch_enc
+        self.depth = depth
         self.n_periods = batch_shape[3]
         self.n_classes = int(n_classes)
         self.pools = pools
@@ -519,18 +530,16 @@ class UTime(nn.Module):
         # -- Model --
         # NOTE: Add input encoding layer (UNet)
         # Ref: https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
-        self.inc = DoubleConvBlock(self.input_dims, in_ch_enc, self.n_periods)
+        self.inc = DoubleConvBlock(self.input_dims, in_ch_enc)
 
-        self.encoder = UTimeEncoder(in_ch_enc, self.n_periods)
+        self.encoder = UTimeEncoder(in_ch_enc, depth=depth, pools=pools)
 
         in_ch_dec = self.encoder.filters[-1]  # FIXME:
-        n_periods_dec = None  # FIXME:
-        self.decoder = UTimeDecoder(in_ch_dec, n_periods_dec)
+        self.decoder = UTimeDecoder(in_ch_dec, depth=depth, pools=pools)
 
         in_ch_dc = self.decoder.filters[-1]  # FIXME:
-        n_periods_dc = None  # FIXME:
-        self.dence_clf = DenseClassifier(
-            in_ch_dc, self.n_classes, self.n_periods)
+        self.dense_clf = DenseClassifier(
+            in_ch_dc, self.n_classes)
 
         in_ch_sc = self.n_classes
         data_per_period = data_per_prediction

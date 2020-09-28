@@ -117,7 +117,6 @@ def test_UTimeEncoder__01(depth, pools):
     # -- build --
     net = UTimeEncoder(
         IN_CH,
-        depth=depth,
         pools=pools,
     )
     net.to(torch.double)
@@ -145,7 +144,7 @@ def test_UpBlock__01():
     batch_shape_x2 = (BATCH_SIZE, IN_CH, 1, N_PERIODS)
 
     # -- build --
-    net = UpBlock(IN_CH, IN_CH // 2)
+    net = UpBlock(IN_CH, IN_CH // 2, 2)
     net.to(torch.double)
     pprint.pprint(net)
     
@@ -178,7 +177,6 @@ def test_UTimeDecoder__01(depth, pools, w_out):
     # -- build --
     net = UTimeDecoder(
         in_ch,
-        depth=depth,
         pools=pools,
     )
     net.to(torch.double)
@@ -202,16 +200,6 @@ def test_UTimeDecoder__01(depth, pools, w_out):
 
     y = net(x1_tensor, x2_list)
     print(f"y: {y.size()}, {y.dtype}")
-    # print(f"res: len={len(res)}, res[0]={res[0].size()}")
-
-    # assert y.size(0) == BATCH_SIZE
-    # assert y.size(1) == OUT_CH * (2**depth)
-    # assert y.size(2) == 1
-    # assert y.size(3) == w_out
-
-    # assert len(res) == depth
-    # assert len(net.filters) == depth + 1
-    # np.testing.assert_array_equal(net.filters, [IN_CH, IN_CH*2, IN_CH*4])
 
 
 def test_DenseClassifier__01():
@@ -264,11 +252,14 @@ def test_SegmentClassifier__01():
     assert y.size(3) == N_PERIODS // data_per_period
 
 
-def test_UTime__01():
+@pytest.mark.parametrize("pools", (
+    (4, 4, 4, 4),
+    (6, 4, 2),
+))
+def test_UTime__01(pools):
     """ Build an encoder. """
     input_dims = 6
     data_per_period = 10
-    pools = (4, 4, 4, 4)
     batch_shape = (BATCH_SIZE, input_dims, 1, N_PERIODS)
 
     # -- build --

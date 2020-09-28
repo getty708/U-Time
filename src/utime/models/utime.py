@@ -159,7 +159,6 @@ class DoubleConvBlock(nn.Module):
             mid_ch,
             kernel_size=(1, kernel_size),
             stride=(1, stride),
-            # padding=(0, pad),
             padding=(0, 0),
             dilation=(1, dilation),
         )
@@ -169,7 +168,6 @@ class DoubleConvBlock(nn.Module):
             out_ch,
             kernel_size=(1, kernel_size),
             stride=(1, stride),
-            # padding=(0, pad),
             padding=(0, 0),
             dilation=(1, dilation),
         )
@@ -189,9 +187,10 @@ class DoubleConvBlock(nn.Module):
 
         x = F.pad(x, self.pad, 'constant', 0)
         x = self.afunc(self.bn1(self.conv1(x)))
-
+        
         x = F.pad(x, self.pad, 'constant', 0)
         x = self.afunc(self.bn2(self.conv2(x)))
+
         return x
 
 
@@ -221,9 +220,9 @@ class DownBlock(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=(1, pool_size))
 
     def forward(self, x):
-        x = self.double_conv(x)
-        x = self.pool(x)
-        return x
+        x_skip = self.double_conv(x)
+        x = self.pool(x_skip)
+        return x, x_skip
 
 
 class UTimeEncoder(nn.ModuleList):
@@ -270,17 +269,16 @@ class UTimeEncoder(nn.ModuleList):
         self.filters = tuple(filters)
 
     def forward(self, x):
-        x_ = x
-
         # -- main block --
-        residual_connections = []
+        skip_connections = []
         for i in range(self.depth):
-            x_ = self.conv_blocks[i](x_)
-            residual_connections.append(x_)
+            x, x_skip = self.conv_blocks[i](x)
+            skip_connections.append(x_skip)
+            print(f"[Enc {i}] x={x.size()}, x_skip={x_skip.size()}")
         # -- bottom --
-        encoded = self.bottom(x_)
+        encoded = self.bottom(x)
 
-        return encoded, residual_connections
+        return encoded, skip_connections
 
 
 class UpBlock(nn.Module):
@@ -308,7 +306,8 @@ class UpBlock(nn.Module):
         """
         Args:
             in_ch (int):
-                number of input channels of ``x1`` (main stream).
+                number of input channels of ``x1`` (main stream) ``x2`` (skip connections).
+                x1 and x2 should have the same number of channels.
             out_ch (int):
                 input/output channels.
             mode (str):
@@ -327,13 +326,13 @@ class UpBlock(nn.Module):
                 scale_factor=(1, 2),
                 mode='bilinear',
                 align_corners=True)
-            self.conv0 = SingleConvBlock(
-                in_ch, in_ch // 2, dilation=1)
+            # self.conv0 = SingleConvBlock(            
+            #     in_ch, in_ch // 2, dilation=1)
         else:
             raise ValueError()
 
         # --  Double Conv Layer --
-        self.double_conv = DoubleConvBlock(in_ch, out_ch)
+        self.double_conv = DoubleConvBlock(in_ch * 2, out_ch)
 
     def forward(self, x1, x2):
         """ 
@@ -342,16 +341,19 @@ class UpBlock(nn.Module):
             x2 (Tensor): a tensor from downsampling layer.
         """
         # -- upsampling --
+        print("check[Before UP]:", x1.size())
         x1 = self.up(x1)
-        x1 = self.conv0(x1)
-
-        # -- Concat --
+        print("check[After UP]:", x1.size())
+        # x1 = self.conv0(x1)
+        
+        # -- Concat --        
         diff_h = x2.size()[2] - x1.size()[2]
         diff_w = x2.size()[3] - x1.size()[3]
-        x1 = F.pad(x1, [diff_h // 2, diff_h - diff_h // 2,
-                        diff_w // 2, diff_w - diff_w // 2])
+        x1 = F.pad(x1, [diff_w // 2, diff_w - diff_w // 2,
+                        diff_h // 2, diff_h - diff_h // 2])
+        print("check[After Crop]:", x1.size())        
         x = torch.cat([x1, x2], dim=1)
-
+        print("check[After Cat]:", x1.size(), x2.size(), "==>", x.size())                
         # -- conv --
         x = self.double_conv(x)
         return x
@@ -399,7 +401,7 @@ class UTimeDecoder(nn.ModuleList):
             filters.append(in_ch // 2)
             in_ch //= 2
         self.up_blocks = nn.ModuleList(l)
-
+        
         # -- Store meta data --
         self.filters = tuple(filters)
 
@@ -411,8 +413,9 @@ class UTimeDecoder(nn.ModuleList):
         """
         # -- main block --
         for i in range(self.depth):
-            print(f"[{i}] x1={x1.size()}, x2={x2_list[i].size()}")
-            x1 = self.up_blocks[i](x1, x2_list[i])
+            i_inv = (self.depth - 1) - i
+            print(f"[{i}] x1={x1.size()}, x2={x2_list[i_inv].size()}")
+            x1 = self.up_blocks[i](x1, x2_list[i_inv])
         return x1
 
 
@@ -477,11 +480,11 @@ class UTime(nn.Module):
     def __init__(
         self,
         n_classes,
-        batch_shape,
+        input_shape,
         in_ch_enc=16,
         depth=4,
         pools=(10, 8, 6, 4),
-        data_per_prediction=None,
+        data_per_period=None,
         logger=None,
         build=True,
         **kwargs,
@@ -492,8 +495,8 @@ class UTime(nn.Module):
             n_classes (int):
                 The number of classes to model, gives the number of filters in the
                 final 1x1 conv layer.
-            batch_shape (list): Giving the shape of one one batch of data,
-                potentially omitting the zero-th axis (the batchsize dim)
+            input_shape (list):
+                Giving the shape of a single sample. Input data should have CHW format.
             depth (int):
                 Number of conv blocks in encoding layer (number of 2x2 max pools)
                 Note: each block doubles the filter count while halving the spatial
@@ -513,12 +516,10 @@ class UTime(nn.Module):
         self.logger = logger or ScreenLogger()
 
         # Set various attributes
-        assert len(batch_shape) == 4
-        self.n_channels = batch_shape[1]
-        self.input_dims = batch_shape[2]
+        assert len(input_shape) == 3
+        self.input_shape = input_shape # format=CHW
         self.in_ch_enc = in_ch_enc
         self.depth = depth
-        self.n_periods = batch_shape[3]
         self.n_classes = int(n_classes)
         self.pools = pools
         if len(self.pools) != self.depth:
@@ -530,70 +531,30 @@ class UTime(nn.Module):
         # -- Model --
         # NOTE: Add input encoding layer (UNet)
         # Ref: https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
-        self.inc = DoubleConvBlock(self.input_dims, in_ch_enc)
+        self.inc = DoubleConvBlock(self.input_shape[0], in_ch_enc)
 
         self.encoder = UTimeEncoder(in_ch_enc, depth=depth, pools=pools)
 
         in_ch_dec = self.encoder.filters[-1]  # FIXME:
         self.decoder = UTimeDecoder(in_ch_dec, depth=depth, pools=pools)
 
-        in_ch_dc = self.decoder.filters[-1]  # FIXME:
-        self.dense_clf = DenseClassifier(
-            in_ch_dc, self.n_classes)
+        self.dense_clf = DenseClassifier(in_ch_enc, self.n_classes)
 
-        in_ch_sc = self.n_classes
-        data_per_period = data_per_prediction
-        self.segment_clf = SegmentClassifier(in_ch_sc, data_per_period)
+        self.segment_clf = SegmentClassifier(self.n_classes, data_per_period)
+        
 
-        # raise NotImplementedError()
+    def forward(self, x):
+        x = self.inc(x)
+        (x, res) = self.encoder(x)
+        print(f"encoder(x): {x.size()}")
+        x = self.decoder(x, res)
+        print(f"decoder(x): {x.size()}")        
+        x = self.dense_clf(x) 
+        print(f"dense_clf(x): {x.size()}")       
+        x = self.segment_clf(x)
+        print(f"segment_clf(x): {x.size()}")
+        return x            
 
-        # FIXME: activation func?
-        # self.dense_classifier_activation = dense_classifier_activation
-        # self.data_per_prediction = data_per_prediction or self.input_dims
-        # if not isinstance(self.data_per_prediction, (int, np.integer)):
-        #     raise TypeError("data_per_prediction must be an integer value")
-        # if self.input_dims % self.data_per_prediction:
-        #     raise ValueError(
-        #         "'input_dims' ({}) must be evenly divisible by "
-        #         "'data_per_prediction' ({})".format(
-        #             self.input_dims, self.data_per_prediction
-        #         )
-        #     )
-
-        # FIXME: remove?
-        # if build:
-        #     # Compute receptive field
-        #     ind = [x.__class__.__name__ for x in self.layers].index("UpSampling2D")
-        #     self.receptive_field = compute_receptive_fields(self.layers[:ind])[-1][-1]
-
-        #     # Log the model definition
-        #     self.log()
-        # else:
-        #     self.receptive_field = [None]
-        self.receptive_field = [None]
-
+    
     def log(self):
         pass
-        # self.logger(
-        #     "{} Model Summary\n" "-------------------".format(__class__.__name__)
-        # )
-        # self.logger("N periods:         {}".format(self.n_periods))
-        # self.logger("Input dims:        {}".format(self.input_dims))
-        # self.logger("N channels:        {}".format(self.n_channels))
-        # self.logger("N classes:         {}".format(self.n_classes))
-        # self.logger("Kernel size:       {}".format(self.kernel_size))
-        # self.logger("Dilation rate:     {}".format(self.dilation))
-        # self.logger("CF factor:         %.3f" % self.cf)
-        # self.logger("Init filters:      {}".format(self.init_filters))
-        # self.logger("Depth:             %i" % self.depth)
-        # self.logger("Poolings:          {}".format(self.pools))
-        # self.logger("Transition window  {}".format(self.transition_window))
-        # self.logger("Dense activation   {}".format(self.dense_classifier_activation))
-        # self.logger("l2 reg:            %s" % self.l2_reg)
-        # self.logger("Padding:           %s" % self.padding)
-        # self.logger("Conv activation:   %s" % self.activation)
-        # self.logger("Receptive field:   %s" % self.receptive_field[0])
-        # self.logger("Seq length.:       {}".format(self.n_periods * self.input_dims))
-        # self.logger("N params:          %i" % self.count_params())
-        # self.logger("Input:             %s" % self.input)
-        # self.logger("Output:            %s" % self.output)

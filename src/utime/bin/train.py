@@ -9,6 +9,27 @@ from argparse import ArgumentParser
 import os
 
 
+def remove_previous_session(project_folder):
+    """
+    Deletes various mpunet project folders and files from
+    [project_folder].
+    Args:
+        project_folder: A path to a utime project folder
+    """
+    import shutil
+    # Remove old files and directories of logs, images etc if existing
+    paths = [os.path.join(project_folder, p) for p in ("images",
+                                                       "logs",
+                                                       "tensorboard",
+                                                       "views.npz",
+                                                       "views.png")]
+    for p in filter(os.path.exists, paths):
+        if os.path.isdir(p):
+            shutil.rmtree(p)
+        else:
+            os.remove(p)
+
+
 def get_argparser():
     """
     Returns an argument parser for this script
@@ -105,7 +126,7 @@ def run(args, gpu_mon):
         gpu_mon: (GPUMonitor) Initialized MultiPlanarUNet GPUMonitor object
     """
     assert_args(args)
-    from mpunet.logging import Logger
+    from utime.logging import Logger
     from utime.train import Trainer
     from utime.hyperparameters import YAMLHParams
     from utime.utils.scriptutils import (assert_project_folder,
@@ -119,7 +140,6 @@ def run(args, gpu_mon):
     project_dir = os.path.abspath("./")
     assert_project_folder(project_dir)
     if args.overwrite and not args.continue_training:
-        from mpunet.bin.train import remove_previous_session
         remove_previous_session(project_dir)
 
     # Get logger object
@@ -200,7 +220,7 @@ def entry_func(args=None):
 
     # Here, we wrap the training in a try/except block to ensure that we
     # stop the GPUMonitor process after training, even if an error occurred
-    from mpunet.utils.system import GPUMonitor
+    from utime.utils.system import GPUMonitor
     gpu_mon = GPUMonitor()
     try:
         run(args=args, gpu_mon=gpu_mon)

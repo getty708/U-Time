@@ -5,7 +5,7 @@ from utime.dataset import SleepStudy
 from utime.errors import CouldNotLoadError
 from utime.dataset.utils import find_subject_folders
 from utime import defaults
-from mpunet.logging import ScreenLogger
+from utime.logging import ScreenLogger
 
 
 class SleepStudyDataset(object):

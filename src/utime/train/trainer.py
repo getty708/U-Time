@@ -9,12 +9,12 @@ from multiprocessing import cpu_count
 from tensorflow.keras import optimizers, losses
 from tensorflow.python.framework.errors_impl import (ResourceExhaustedError,
                                                      InternalError)
-from mpunet.callbacks import (init_callback_objects,
-                                       remove_validation_callbacks)
-from mpunet.logging import ScreenLogger
-from mpunet.callbacks import (DividerLine, LearningCurve)
-from mpunet.utils import ensure_list_or_tuple
-from mpunet.train.utils import (ensure_sparse, init_losses,
+from utime.callbacks import (init_callback_objects,
+                             remove_validation_callbacks)
+from utime.logging import ScreenLogger
+from utime.callbacks import (DividerLine, LearningCurve)
+from utime.utils import ensure_list_or_tuple
+from utime.train.utils import (ensure_sparse, init_losses,
                                          init_metrics)
 from utime.callbacks import Validation
 from utime.train.utils import get_steps

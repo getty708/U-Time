@@ -3,7 +3,7 @@ Functions for initializing models from build hyperparameters and loading of
 parameters.
 """
 
-from mpunet.logging import ScreenLogger
+from utime.logging import ScreenLogger
 import os
 
 

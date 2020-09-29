@@ -4,7 +4,7 @@ A set of utility functions used across multiple scripts in utime.bin
 
 import os
 from utime.utils.utils import ensure_list_or_tuple
-from mpunet.logging.default_logger import ScreenLogger
+from utime.logging.default_logger import ScreenLogger
 
 
 def assert_project_folder(project_folder, evaluation=False):
@@ -251,7 +251,7 @@ def select_sample_strip_scale_quality(*datasets, hparams, logger=None):
         scl = hparams.get_from_anywhere("scaler") or "RobustScaler"
         list(map(lambda ds: ds.set_scaler(scl), datasets))
     else:
-        from mpunet.logging import ScreenLogger
+        from utime.logging import ScreenLogger
         logger = logger or ScreenLogger()
         logger.warn("Note: 'batch_wise_scaling' is set to True in 'fit' hparams."
                     " No scaling will be applied globally to members of the"
@@ -279,11 +279,12 @@ def make_multi_gpu_model(model, num_GPUs, logger=None):
         The original model
         Note: The two will be the same for num_GPUs=1
     """
-    org_model = model
-    if num_GPUs > 1:
-        from tensorflow.keras.utils import multi_gpu_model
-        model = multi_gpu_model(org_model, gpus=num_GPUs,
-                                cpu_merge=False, cpu_relocation=False)
-        logger = logger or ScreenLogger()
-        logger("Creating multi-GPU model: N=%i" % num_GPUs)
-    return model, org_model
+    raise NotImplementedError()
+    # org_model = model
+    # if num_GPUs > 1:
+    #     from tensorflow.keras.utils import multi_gpu_model
+    #     model = multi_gpu_model(org_model, gpus=num_GPUs,
+    #                             cpu_merge=False, cpu_relocation=False)
+    #     logger = logger or ScreenLogger()
+    #     logger("Creating multi-GPU model: N=%i" % num_GPUs)
+    # return model, org_model

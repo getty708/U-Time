@@ -11,7 +11,7 @@ with open('README.md') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read().replace('.. :changelog:', '')
 
-with open("requirements.txt") as req_file:
+with open("./docker/requirements.txt") as req_file:
     requirements = list(filter(None, req_file.read().split("\n")))
 
 setup(

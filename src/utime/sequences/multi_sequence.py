@@ -1,5 +1,5 @@
 from utime.sequences.base_sequence import _BaseSequence
-from mpunet.logging import ScreenLogger
+from utime.logging import ScreenLogger
 import numpy as np
 
 

@@ -13,12 +13,12 @@ import numpy as np
 
 def _check_deprecated_params(hparams, logger):
     if hparams.get('fit') and hparams["fit"].get("sparse"):
-        from mpunet.errors.deprecated_warnings import warn_sparse_param
+        from utime.errors.deprecated_warnings import warn_sparse_param
         warn_sparse_param(logger)
 
 
 def _check_version(hparams, logger, package="mpunet"):
-    from mpunet.bin.version import VersionController
+    from utime.bin.version import VersionController
     vc = VersionController(package=package)
     if not vc.check_git():
         logger.warn("Path {} does not contain a Git repository, or Git is not"
@@ -52,7 +52,7 @@ def _check_version(hparams, logger, package="mpunet"):
 
 
 def _set_version(hparams, logger=None, package="mpunet"):
-    from mpunet.bin.version import VersionController
+    from utime.bin.version import VersionController
     vc = VersionController(package=package)
     if logger:
         vc.log_version(logger)

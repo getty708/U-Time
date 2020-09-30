@@ -6,9 +6,9 @@ training the model given a set of parameters and (non-initialized) callbacks.
 """
 
 from multiprocessing import cpu_count
-from tensorflow.keras import optimizers, losses
-from tensorflow.python.framework.errors_impl import (ResourceExhaustedError,
-                                                     InternalError)
+# from tensorflow.keras import optimizers, losses
+# from tensorflow.python.framework.errors_impl import (ResourceExhaustedError,
+#                                                      InternalError)
 from utime.callbacks import (init_callback_objects,
                              remove_validation_callbacks)
 from utime.logging import ScreenLogger

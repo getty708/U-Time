@@ -261,30 +261,3 @@ def select_sample_strip_scale_quality(*datasets, hparams, logger=None):
             list(map(str, datasets))
         ))
 
-
-def make_multi_gpu_model(model, num_GPUs, logger=None):
-    """
-    Takes a compiled tf.keras Model object 'model' and applies
-    from tensorflow.keras.utils import multi_gpu_model
-    ... to mirror it across multiple visible GPUs. Input batches to 'model'
-    are split evenly across the GPUs.
-
-    Args:
-        model:    (tf.keras Model) A compiled tf.keras Model object.
-        num_GPUs: (int)            Number of GPUs to distribute the model over
-        logger:   (Logger)         Optional Logger object
-
-    Returns:
-        The split, multi-GPU model.
-        The original model
-        Note: The two will be the same for num_GPUs=1
-    """
-    raise NotImplementedError()
-    # org_model = model
-    # if num_GPUs > 1:
-    #     from tensorflow.keras.utils import multi_gpu_model
-    #     model = multi_gpu_model(org_model, gpus=num_GPUs,
-    #                             cpu_merge=False, cpu_relocation=False)
-    #     logger = logger or ScreenLogger()
-    #     logger("Creating multi-GPU model: N=%i" % num_GPUs)
-    # return model, org_model

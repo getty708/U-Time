@@ -5,7 +5,7 @@ A set of functions for needed for running training in various settings
 from utime.logging.default_logger import ScreenLogger
 
 
-def get_train_and_val_datasets(hparams, no_val, train_on_val, logger):
+def get_train_and_val_datasets(hparams, no_val, logger):
     """
     Return all pairs of (train, validation) SleepStudyDatasets as described in
     the YAMLHParams object 'hparams'. A list is returned, as more than 1
@@ -19,9 +19,6 @@ def get_train_and_val_datasets(hparams, no_val, train_on_val, logger):
         hparams:      (YAMLHParams) A hyperparameter object to load dataset
                                     configurations from.
         no_val:       (bool)        Do not load validation data
-        train_on_val: (bool)        Load validation data, but merge it into
-                                    the training data. Then return only the
-                                    'trainin' (train+val) dataset.
         logger:       (Logger)      A Logger object
 
     Returns:
@@ -36,13 +33,6 @@ def get_train_and_val_datasets(hparams, no_val, train_on_val, logger):
         load = ("train_data", "val_data")
     from utime.utils.scriptutils import get_splits_from_all_datasets
     datasets = [*get_splits_from_all_datasets(hparams, load, logger)]
-    if train_on_val:
-        if any([len(ds) != 2 for ds in datasets]):
-            raise ValueError("Did not find a validation set for one or more "
-                             "pairs in {}".format(datasets))
-        logger("[OBS] Merging training and validation sets")
-        datasets = [merge_train_and_val(*ds) for ds in datasets]
-        no_val = True
     return datasets, no_val
 
 

@@ -38,7 +38,9 @@ def get_argparser():
                                         ' a project folder. Invoke '
                                         '"ut init" to start a new project.')
     parser.add_argument("--num_GPUs", type=int, default=1,
-                        help="Number of GPUs to use for this job (default=1)")
+                        help=("[ Deprecated ] Number of GPUs to use for this job."
+                              "Pytorch implementation does no support multiple GPU."
+                              "(default=1)"))
     parser.add_argument("--force_GPU", type=str, default="")
     parser.add_argument("--continue_training", action="store_true",
                         help="Continue the last training session")
@@ -70,14 +72,17 @@ def get_argparser():
                              "specified in the parameter file.")
     parser.add_argument("--final_weights_file_name", type=str,
                         default="model_weights.h5")
-    parser.add_argument("--train_on_val", action="store_true",
-                        help="Include the validation set in the training set."
-                             " Will force --no_val to be active.")
+    # parser.add_argument("--train_on_val", action="store_true",
+    #                     help="Include the validation set in the training set."
+    #                          " Will force --no_val to be active.")
     return parser
 
 
 def assert_args(args):
     """ Implements a limited set of checks on the passed arguments """
+    if args.num_GPUs != 1:
+        raise ValueError("[ Deprecated ] "
+                         "Pytorch implementation does not support multiple GPUs.")
     if args.continue_training and args.initialize_from:
         raise ValueError("Should not specify both --continue_training and "
                          "--initialize_from")
@@ -129,8 +134,7 @@ def run(args, gpu_mon):
     from utime.logging import Logger
     from utime.train import Trainer
     from utime.hyperparameters import YAMLHParams
-    from utime.utils.scriptutils import (assert_project_folder,
-                                         make_multi_gpu_model)
+    from utime.utils.scriptutils import assert_project_folder
     from utime.utils.scriptutils.train import (get_train_and_val_datasets,
                                                get_generators,
                                                find_and_set_gpus,
@@ -153,8 +157,7 @@ def run(args, gpu_mon):
     update_hparams_with_command_line_arguments(hparams, args)
 
     # Initialize and load (potentially multiple) datasets
-    datasets, no_val = get_train_and_val_datasets(hparams, args.no_val,
-                                                  args.train_on_val, logger)
+    datasets, no_val = get_train_and_val_datasets(hparams, args.no_val, logger)
 
     # Load data in all datasets
     for data in datasets:

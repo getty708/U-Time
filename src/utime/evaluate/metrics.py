@@ -10,7 +10,7 @@ Refernces:
 
 """
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 
 
 def dice(y_true, y_pred, smooth=1.0):

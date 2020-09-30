@@ -9,9 +9,9 @@ from utime.evaluate import loss_functions as custom_losses
 from utime.evaluate import metrics as custom_metrics
 from utime.utils import ensure_list_or_tuple
 from utime.errors.implementation_change_errors import NotSparseError
-from tensorflow.keras import optimizers, losses, metrics, activations
-from tensorflow_addons import optimizers as addon_optimizers
-from tensorflow_addons import activations as addon_activations
+# from tensorflow.keras import optimizers, losses, metrics, activations
+# from tensorflow_addons import optimizers as addon_optimizers
+# from tensorflow_addons import activations as addon_activations
 
 
 def get_steps(samples_per_epoch, sequence):

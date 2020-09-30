@@ -2,9 +2,9 @@
 References:
 - https://github.com/perslev/MultiPlanarUNet/blob/master/mpunet/evaluate/loss_functions.py
 """
-import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
-
+# import tensorflow as tf
+# from tensorflow.python.keras.losses import LossFunctionWrapper
+LossFunctionWrapper = object
 
 def _to_tensor(x, dtype):
     """Convert the input `x` to a tensor of type `dtype`.

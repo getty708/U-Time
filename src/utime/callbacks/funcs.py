@@ -2,7 +2,7 @@
 References:
 - https://github.com/perslev/MultiPlanarUNet/blob/master/mpunet/callbacks/funcs.py
 """
-from tensorflow.keras import callbacks as tfcb
+# from tensorflow.keras import callbacks as tfcb
 from .callbacks import DelayedCallback
 
 

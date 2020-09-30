@@ -17,13 +17,14 @@ import psutil
 import numpy as np
 import pandas as pd
 
-import tensorflow as tf
-from tensorflow.keras.callbacks import Callback
+# import tensorflow as tf
+# from tensorflow.keras.callbacks import Callback
 from utime.utils import highlighted
 from utime.logging import ScreenLogger
 
+Callback = object
 
-class Validation(Callback):
+class Validation(Callback):    
     """
     Validation computation callback.
     

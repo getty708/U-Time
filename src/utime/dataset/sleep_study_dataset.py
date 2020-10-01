@@ -336,16 +336,26 @@ class SleepStudyDataset(object):
                              "channels. Got: {}".format(cnls))
 
         # Init and return the proper BatchSequence sub-class
-        from utime.sequences import get_sequence_class
-        sequence_class = get_sequence_class(random_batches, balanced_sampling)
-        return sequence_class(identifier=self.identifier,
-                              sleep_study_pairs=self.pairs,
-                              batch_size=batch_size,
-                              data_per_period=dpe[0],
-                              n_classes=n_classes,
-                              n_channels=cnls[0],
-                              margin=margin,
-                              batch_scaler=scaler if batch_wise_scaling else None,
-                              logger=self.logger,
-                              no_log=no_log,
-                              **kwargs)
+        # from utime.sequences import get_sequence_class
+        # sequence_class = get_sequence_class(random_batches, balanced_sampling)
+        # return sequence_class(identifier=self.identifier,
+        #                       sleep_study_pairs=self.pairs,
+        #                       batch_size=batch_size,
+        #                       data_per_period=dpe[0],
+        #                       n_classes=n_classes,
+        #                       n_channels=cnls[0],
+        #                       margin=margin,
+        #                       batch_scaler=scaler if batch_wise_scaling else None,
+        #                       logger=self.logger,
+        #                       no_log=no_log,
+        #                       **kwargs)
+        return dict(identifier=self.identifier,
+                    sleep_study_pairs=self.pairs,
+                    batch_size=batch_size,
+                    data_per_period=dpe[0],
+                    n_classes=n_classes,
+                    n_channels=cnls[0],
+                    margin=margin,
+                    batch_scaler=scaler if batch_wise_scaling else None,
+                    logger=self.logger,
+                    no_log=no_log)

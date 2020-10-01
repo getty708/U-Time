@@ -7,6 +7,7 @@ ut init).
 
 from argparse import ArgumentParser
 import os
+import pprint
 
 
 def remove_previous_session(project_folder):
@@ -122,6 +123,34 @@ def update_hparams_with_command_line_arguments(hparams, args):
     hparams.save_current()
 
 
+def get_generators(datasets, hparams, no_val):
+    """ Returns pytorch dataset class.
+    
+    Args:
+        datasets: (list)        A list of (training, validation) pairs of
+                                SleepStudyData objects or (training,) if no_val
+                                is True
+        hparams:  (YAMLHParams) The hyperparameters to init the sequencers with
+        no_val:   (bool)        Indicates that no validation is to be performed
+                                and that entries in 'datasets' are of length 1.
+
+    Returns:
+        A training Sequence or MultiSequence objects
+        A ValidatonMultiSequence object if no_val=False, otherwise None
+    """
+    pprint.pprint(datasets)
+    # training
+    train_seq = [d[0].get_batch_sequence(random_batches=True,
+                                          **hparams["fit"]) for d in datasets]
+    # validation
+    val_seq = [d[1].get_batch_sequence(random_batches=True,
+                                       **hparams["fit"]) for d in datasets]
+    
+    pprint.pprint(train_seq)
+    return train_seq, val_seq
+
+    
+
 def run(args, gpu_mon):
     """
     Run the script according to args - Please refer to the argparser.
@@ -136,7 +165,6 @@ def run(args, gpu_mon):
     from utime.hyperparameters import YAMLHParams
     from utime.utils.scriptutils import assert_project_folder
     from utime.utils.scriptutils.train import (get_train_and_val_datasets,
-                                               get_generators,
                                                find_and_set_gpus,
                                                get_samples_per_epoch,
                                                save_final_weights)
@@ -157,6 +185,7 @@ def run(args, gpu_mon):
     update_hparams_with_command_line_arguments(hparams, args)
 
     # Initialize and load (potentially multiple) datasets
+    print("no_val:", args.no_val)
     datasets, no_val = get_train_and_val_datasets(hparams, args.no_val, logger)
 
     # Load data in all datasets
@@ -167,6 +196,12 @@ def run(args, gpu_mon):
 
     # Get sequence generators for all datasets
     train_seq, val_seq = get_generators(datasets, hparams, no_val)
+    pprint.pprint(datasets)
+    pprint.pprint(datasets[0])
+    pprint.pprint(datasets[0][0])
+    pprint.pprint(hparams)
+    pprint.pprint(no_val)
+    raise NotImplementedError()
 
     # Add additional (inferred) parameters to parameter file
     hparams.set_value("build", "n_classes", train_seq.n_classes, overwrite=True)

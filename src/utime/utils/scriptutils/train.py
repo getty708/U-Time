@@ -61,23 +61,24 @@ def get_generators(datasets, hparams, no_val):
         A training Sequence or MultiSequence objects
         A ValidatonMultiSequence object if no_val=False, otherwise None
     """
-    from utime.sequences import MultiSequence, ValidationMultiSequence
-    train_seqs = [d[0].get_batch_sequence(random_batches=True,
-                                          **hparams["fit"]) for d in datasets]
-    val_seq = None
-    if not no_val:
-        random_val_batches = True  # Currently only option supported
-        val_seq = [d[1].get_batch_sequence(random_batches=random_val_batches,
-                                           **hparams["fit"]) for d in datasets]
-    if len(train_seqs) > 1:
-        assert len(val_seq) == len(train_seqs)
-        train_seq = MultiSequence(train_seqs, hparams['fit']['batch_size'],
-                                  logger=train_seqs[0].logger)
-    else:
-        train_seq = train_seqs[0]
-    if val_seq:
-        val_seq = ValidationMultiSequence(val_seq, logger=train_seq.logger)
-    return train_seq, val_seq
+    # raise NotImplementedError()
+    # from utime.sequences import MultiSequence, ValidationMultiSequence
+    # train_seqs = [d[0].get_batch_sequence(random_batches=True,
+    #                                       **hparams["fit"]) for d in datasets]
+    # val_seq = None
+    # if not no_val:
+    #     random_val_batches = True  # Currently only option supported
+    #     val_seq = [d[1].get_batch_sequence(random_batches=random_val_batches,
+    #                                        **hparams["fit"]) for d in datasets]
+    # if len(train_seqs) > 1:
+    #     assert len(val_seq) == len(train_seqs)
+    #     train_seq = MultiSequence(train_seqs, hparams['fit']['batch_size'],
+    #                               logger=train_seqs[0].logger)
+    # else:
+    #     train_seq = train_seqs[0]
+    # if val_seq:
+    #     val_seq = ValidationMultiSequence(val_seq, logger=train_seq.logger)
+    # return train_seq, val_seq
 
 
 def find_and_set_gpus(gpu_mon, force_GPU, num_GPUs):

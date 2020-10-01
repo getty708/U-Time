@@ -172,7 +172,6 @@ def get_splits_from_all_datasets(hparams, splits_to_load, logger=None):
             id=dataset_id
         )
 
-
 def get_dataset_from_regex_pattern(regex_pattern, hparams, logger=None):
     """
     Initializes a SleepStudy dataset and applies prep. function
